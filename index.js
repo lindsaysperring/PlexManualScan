@@ -164,6 +164,7 @@ const chosenItem = async () => {
       console.log(`Plex is scanning: ${selectedItem.title}`);
     }
   } else {
+    selectedSection = sectionContents = selectedItem = null;
     return main();
   }
 };
@@ -181,13 +182,6 @@ async function main() {
   await selectSection();
 
   sectionContents = await GetSectionItems(sections[selectedSection].key)
-    .then((res) => {
-      fs.writeFileSync(
-        "SectionItems.json",
-        JSON.stringify(res.data.MediaContainer)
-      );
-      return res;
-    })
     .then((res) => res.data.MediaContainer.Metadata)
     .catch(axiosErrors);
 
