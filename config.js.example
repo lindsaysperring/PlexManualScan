@@ -1,0 +1,4 @@
+const plexURL = "http://192.168.86.30:32400"; // No ending /
+const plexToken = "asdfghjikuytfvbn";
+
+module.exports = { plexToken, plexURL };
