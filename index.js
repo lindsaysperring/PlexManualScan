@@ -30,7 +30,7 @@ const ScanPath = (path) => {
   return axios.get(
     `${plexURL}/library/sections/${sections[selectedSection].key}/refresh`,
     {
-      params: { ...params, path: path },
+      params: { ...params, path: "/storage/UBUNTU/Plex/TV/Arcane (2021)" },
     }
   );
 };
@@ -58,6 +58,56 @@ const axiosErrors = (error) => {
   }
   console.log(error.config);
   return { error: true };
+};
+
+const selectSectionOrPath = async () => {
+  console.log("Scan Existing or path");
+  console.log("[0]: Scan Existing");
+  console.log("[1]: Scan Path");
+  let valid = false;
+  while (!valid) {
+    const selection = await getInput("Please select an option: ");
+    if (selection == 0) {
+      valid = true;
+      return;
+    } else if (selection == 1) {
+      valid = true;
+      selected = await selectLibraryForPath();
+      console.log(`Base Path: ${selected.path} `);
+      const scanPath = await getInput(
+        "Subdirectory to scan (no starting slash): "
+      );
+      console.log(`Scanning ${selected.path}/${scanPath}`);
+      selectedSection = selected.sectionIndex;
+      await ScanPath(`${selected.path}/${scanPath}`);
+      process.exit(0);
+    } else {
+      console.log("Invalid Input!");
+    }
+  }
+};
+
+const selectLibraryForPath = async () => {
+  console.log("Plex Directories");
+  let index = 0;
+  let paths = [];
+  for (let i = 0; i < sections.length; i++) {
+    for (let j = 0; j < sections[i].Location.length; j++) {
+      console.log(`[${index}]: ${sections[i].Location[j].path}`);
+      paths.push({ sectionIndex: i, path: sections[i].Location[j].path });
+      index++;
+    }
+  }
+  let valid = false;
+  while (!valid) {
+    const selection = await getInput("Please select an option: ");
+    if (selection >= 0 && selection < paths.length) {
+      valid = true;
+      return paths[selection];
+    } else {
+      console.log("Invalid Input!");
+    }
+  }
 };
 
 const selectSection = async () => {
@@ -178,6 +228,8 @@ async function main() {
     .catch(axiosErrors);
 
   if (initialize && initialize.error) return;
+
+  await selectSectionOrPath();
 
   await selectSection();
 
