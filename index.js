@@ -27,10 +27,11 @@ const GetItem = (key) => {
 };
 
 const ScanPath = (path) => {
+	console.log
   return axios.get(
     `${plexURL}/library/sections/${sections[selectedSection].key}/refresh`,
     {
-      params: { ...params, path: "/storage/UBUNTU/Plex/TV/Arcane (2021)" },
+      params: { ...params, path },
     }
   );
 };
