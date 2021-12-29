@@ -1,4 +1,10 @@
 const plexURL = "http://192.168.86.30:32400"; // No trailing /
 const plexToken = "asdfghjikuytfvbn";
+const sonarrURL = "http://localhost:8989/api"; // No trailing /
+const sonarrAPIKey = "abcdefgasudiausoid";
+const rcloneRCURL = "http://localhost:5572"; // No trailing /
+const rcloneRemote = "src001:";
+const rcloneSonarrBaseFolder = "path/To/SonarrRootFolder"; // No trailing /
+const rcloneShortcutSeriesFolder = "path/To/Folder/Where/You/Want/Shortcut"; // No trailing /
 
-module.exports = { plexToken, plexURL };
+module.exports = { plexToken, plexURL, sonarrURL, sonarrAPIKey, rcloneRCURL, rcloneRemote, rcloneSonarrBaseFolder, rcloneShortcutSeriesFolder };

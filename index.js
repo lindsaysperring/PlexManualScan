@@ -2,7 +2,17 @@ const readline = require("readline");
 const axios = require("axios");
 const Fuse = require("fuse.js");
 const fs = require("fs");
-const { plexToken, plexURL } = require("./config");
+const cachios = require("cachios");
+const {
+  plexToken,
+  plexURL,
+  sonarrURL,
+  sonarrAPIKey,
+  rcloneRCURL,
+  rcloneRemote,
+  rcloneSonarrBaseFolder,
+  rcloneShortcutSeriesFolder,
+} = require("./config");
 
 const params = {
   "X-Plex-Token": plexToken,
@@ -26,8 +36,20 @@ const GetItem = (key) => {
   return axios.get(`${plexURL}${key}`, { params });
 };
 
+const getSeriesFromSonarr = () =>
+  cachios.get(`${sonarrURL}/series?apikey=${sonarrAPIKey}`);
+
+const checkRcloneIfShortcutExists = (path) =>
+  axios.post(
+    `${rcloneRCURL}/operations/list?fs=${rcloneRemote}&remote=${path}`
+  );
+
+const rcloneAddShortcut = (srcPath, DestPath) =>
+  axios.post(
+    `${rcloneRCURL}/backend/command?command=shortcut&fs=${rcloneRemote}&arg=["${srcPath}","${DestPath}"]`
+  );
+
 const ScanPath = (path) => {
-	console.log
   return axios.get(
     `${plexURL}/library/sections/${sections[selectedSection].key}/refresh`,
     {
@@ -61,10 +83,11 @@ const axiosErrors = (error) => {
   return { error: true };
 };
 
-const selectSectionOrPath = async () => {
+const selectSectionPathOrShortcut = async () => {
   console.log("Scan Existing or path");
   console.log("[0]: Scan Existing");
   console.log("[1]: Scan Path");
+  console.log("[2]: Add TV Shortcut");
   let valid = false;
   while (!valid) {
     const selection = await getInput("Please select an option: ");
@@ -81,6 +104,10 @@ const selectSectionOrPath = async () => {
       console.log(`Scanning ${selected.path}/${scanPath}`);
       selectedSection = selected.sectionIndex;
       await ScanPath(`${selected.path}/${scanPath}`);
+      process.exit(0);
+    } else if (selection == 2) {
+      valid = true;
+      await addTVShortcut();
       process.exit(0);
     } else {
       console.log("Invalid Input!");
@@ -220,6 +247,52 @@ const chosenItem = async () => {
   }
 };
 
+const addTVShortcut = async () => {
+  console.log("Fetching series from sonarr");
+  const series = await getSeriesFromSonarr()
+    .then((res) => res.data)
+    .catch(axiosErrors);
+  if (series.error === true) {
+    process.exit(1);
+  }
+  let success = false;
+  while (!success) {
+    let chosen = await chooseSonarrSeries(series);
+    const yn = await getInput(`Create a shortcut for ${chosen.title}? (y/n): `);
+    const yes = ["y", "Y", "yes", "Yes", "YES"];
+    if (yes.includes(yn)) {
+      const path = `${rcloneShortcutSeriesFolder}/${chosen.path
+        .split("/")
+        .at(-1)}`;
+      // check rclone rc if path exists
+      const exists = await checkRcloneIfShortcutExists(path)
+        .then((res) => {
+          return true;
+        })
+        .catch((err) => {
+          return false;
+        });
+      if (exists) {
+        console.log("Shortcut already exists");
+      } else {
+        success = true;
+        // create rclone rc shortcut
+        const created = rcloneAddShortcut(
+          `${rcloneSonarrBaseFolder}/${chosen.path.split("/").at(-1)}`,
+          path
+        )
+          .then((res) => true)
+          .catch((err) => false);
+        if (created) {
+          console.log("Shortcut created");
+        } else {
+          console.log("Something went wrong");
+        }
+      }
+    }
+  }
+};
+
 async function main() {
   const initialize = await TestConnection()
     .then(GetSections)
@@ -230,7 +303,7 @@ async function main() {
 
   if (initialize && initialize.error) return;
 
-  await selectSectionOrPath();
+  await selectSectionPathOrShortcut();
 
   await selectSection();
 
@@ -246,3 +319,34 @@ async function main() {
 }
 
 main();
+
+async function chooseSonarrSeries(series) {
+  const options = {
+    // Search in `author` and in `tags` array
+    keys: ["title"],
+    threshold: 0.4,
+  };
+  const fuse = new Fuse(series, options);
+  let chosen = null;
+  while (!chosen) {
+    const searchTerm = await getInput("Series to search for: ");
+    const result = fuse.search(searchTerm, { limit: 10 });
+    console.log("Results: ");
+    result.forEach((r, i) => {
+      console.log(`[${i}]: ${r.item.title}`);
+    });
+    console.log(`[${result.length}]: Search again`);
+    console.log(`[${result.length + 1}]: Go Back To Start`);
+
+    const selected = await getInput(`Select a show: `);
+    if (selected >= 0 && selected < result.length) {
+      chosen = result[selected].item;
+    } else if (selected != result.length && selected != result.length + 1) {
+      console.log("Invalid Input!");
+    } else if (selected == result.length + 1) {
+      await main();
+      process.exit(0);
+    }
+  }
+  return chosen;
+}
