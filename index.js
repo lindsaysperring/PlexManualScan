@@ -285,6 +285,7 @@ const addTVShortcut = async () => {
           .catch((err) => false);
         if (created) {
           console.log("Shortcut created");
+          console.log(path);
         } else {
           console.log("Something went wrong");
         }
