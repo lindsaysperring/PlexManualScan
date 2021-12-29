@@ -277,7 +277,7 @@ const addTVShortcut = async () => {
       } else {
         success = true;
         // create rclone rc shortcut
-        const created = rcloneAddShortcut(
+        const created = await rcloneAddShortcut(
           `${rcloneSonarrBaseFolder}/${chosen.path.split("/").at(-1)}`,
           path
         )
