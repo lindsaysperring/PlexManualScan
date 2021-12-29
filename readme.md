@@ -1,5 +1,9 @@
 # PlexManualScan
-PlexManualScan is a command line tool that manually scans a specific movie or show folder instead of a whole library. This tool connects to Plex to retrieve your movie and show libraries to retrieve existing paths. This only works with existing items for now.
+PlexManualScan is a command line tool that manually scans a specific movie or show folder instead of a whole library. This tool connects to Plex to retrieve your movie and show libraries to retrieve existing paths.
+
+## New Features
+- Scan folders within Plex Libary Paths
+- create google drive shortcuts with rclone and paths from sonarr
 
 ## Installation
 Using npm or yarn to install
